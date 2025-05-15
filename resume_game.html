@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pradheepa's Resume Adventure</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #0a192f;
+            color: #ccd6f6;
+        }
+        
+        #game-container {
+            width: 800px;
+            height: 600px;
+            margin: 20px auto;
+            position: relative;
+            border: 2px solid #64ffda;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        #game-canvas {
+            background-color: #0a192f;
+            width: 100%;
+            height: 100%;
+        }
+        
+        #hud {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(10, 25, 47, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #64ffda;
+        }
+        
+        #dialog-box {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            background-color: rgba(10, 25, 47, 0.9);
+            border: 2px solid #64ffda;
+            border-radius: 10px;
+            padding: 15px;
+            display: none;
+        }
+        
+        #dialog-text {
+            margin-bottom: 10px;
+        }
+        
+        #dialog-options {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .dialog-option {
+            margin: 5px 0;
+            padding: 8px;
+            background-color: #112240;
+            border: 1px solid #64ffda;
+            color: #ccd6f6;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        
+        .dialog-option:hover {
+            background-color: #233554;
+        }
+        
+        #inventory {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(10, 25, 47, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #64ffda;
+        }
+        
+        .skill-badge {
+            display: inline-block;
+            background-color: #112240;
+            color: #64ffda;
+            padding: 3px 8px;
+            margin: 3px;
+            border-radius: 15px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas" width="800" height="600"></canvas>
+        
+        <div id="hud">
+            <h2>Pradheepa's Journey</h2>
+            <div id="current-position">Location: Amrita University</div>
+            <div id="current-year">Year: 2015</div>
+        </div>
+        
+        <div id="inventory">
+            <h3>Skills & Certifications</h3>
+            <div id="skills-container"></div>
+        </div>
+        
+        <div id="dialog-box">
+            <div id="dialog-text"></div>
+            <div id="dialog-options"></div>
+        </div>
+    </div>
+
+    <script>
+        // Game state
+        const gameState = {
+            currentScene: 'university',
+            year: 2015,
+            skills: [],
+            certifications: []
+        };
+
+        // Scenes data
+        const scenes = {
+            'university': {
+                title: 'Amrita School of Engineering',
+                description: 'You are studying Electronics & Instrumentation. The campus is buzzing with activity.',
+                year: 2015,
+                options: [
+                    { text: 'Attend classes', action: 'study', result: 'You focus on your studies and improve your technical foundation.' },
+                    { text: 'Join a project', action: 'project', result: 'You work on an embedded systems project, gaining practical experience.' },
+                    { text: 'Graduate (2019)', action: 'graduate', nextScene: 'bosch_2019' }
+                ]
+            },
+            'bosch_2019': {
+                title: 'Robert Bosch - Associate Software Engineer',
+                description: 'You start your career at Bosch, working on AUTOSAR BSW for CAN and FlexRay projects.',
+                year: 2019,
+                options: [
+                    { text: 'Develop AUTOSAR BSW', action: 'develop', result: 'You gain experience with AUTOSAR architecture and communication protocols.', skill: 'AUTOSAR' },
+                    { text: 'Conduct HIL testing', action: 'test', result: 'You learn about Hardware-in-the-Loop testing methodologies.', skill: 'Embedded Systems' },
+                    { text: 'Continue to 2020', action: 'next', nextScene: 'bosch_2020' }
+                ]
+            },
+            // Additional scenes would continue through your career progression
+            'bosch_2022': {
+                title: 'Robert Bosch - Senior Algorithm Engineer',
+                description: 'You are now optimizing control models for hydrogen fuel cell systems.',
+                year: 2022,
+                options: [
+                    { text: 'Optimize fuel cell models', action: 'optimize', result: 'You enhance precision and efficiency in real-time operations.', skill: 'Model Based system Design' },
+                    { text: 'Develop AUTOSAR-compliant models', action: 'model', result: 'You create software models using MATLAB and Simulink.', skill: 'SIMULINK' },
+                    { text: 'Conduct SIL testing', action: 'sil', result: 'You perform software validation using TPT and TargetLink.', skill: 'Software Unit verification' },
+                    { text: 'View achievements', action: 'achievements', nextScene: 'achievements' }
+                ]
+            },
+            'achievements': {
+                title: 'Your Achievements',
+                description: 'Looking back at your journey so far...',
+                year: 2023,
+                options: [
+                    { text: 'PG Certification in Automotive Systems (96%, Topper)', action: 'cert1', certification: 'PG Certification in Automotive Systems' },
+                    { text: 'Mathworks Certifications', action: 'cert2', certification: 'Mathworks MATLAB, Simulink, Stateflow & Simscape certification' },
+                    { text: 'H2 Technology Certification', action: 'cert3', certification: 'BOSCH H2 Technology & Fuel Cell Certification' },
+                    { text: 'Return to work', action: 'return', nextScene: 'bosch_2022' }
+                ]
+            }
+        };
+
+        // Initialize game
+        function initGame() {
+            updateScene();
+            renderSkills();
+        }
+
+        // Update the current scene
+        function updateScene() {
+            const scene = scenes[gameState.currentScene];
+            document.getElementById('current-position').textContent = `Location: ${scene.title}`;
+            document.getElementById('current-year').textContent = `Year: ${scene.year}`;
+            
+            const dialogText = document.getElementById('dialog-text');
+            dialogText.textContent = scene.description;
+            
+            const optionsContainer = document.getElementById('dialog-options');
+            optionsContainer.innerHTML = '';
+            
+            scene.options.forEach(option => {
+                const button = document.createElement('button');
+                button.className = 'dialog-option';
+                button.textContent = option.text;
+                button.onclick = () => selectOption(option);
+                optionsContainer.appendChild(button);
+            });
+            
+            document.getElementById('dialog-box').style.display = 'block';
+        }
+
+        // Handle option selection
+        function selectOption(option) {
+            if (option.result) {
+                alert(option.result);
+            }
+            
+            if (option.skill && !gameState.skills.includes(option.skill)) {
+                gameState.skills.push(option.skill);
+                renderSkills();
+            }
+            
+            if (option.certification && !gameState.certifications.includes(option.certification)) {
+                gameState.certifications.push(option.certification);
+                renderSkills();
+            }
+            
+            if (option.nextScene) {
+                gameState.currentScene = option.nextScene;
+                updateScene();
+            }
+        }
+
+        // Render skills and certifications
+        function renderSkills() {
+            const container = document.getElementById('skills-container');
+            container.innerHTML = '';
+            
+            gameState.skills.forEach(skill => {
+                const badge = document.createElement('span');
+                badge.className = 'skill-badge';
+                badge.textContent = skill;
+                container.appendChild(badge);
+            });
+            
+            gameState.certifications.forEach(cert => {
+                const badge = document.createElement('span');
+                badge.className = 'skill-badge';
+                badge.textContent = cert;
+                badge.style.backgroundColor = '#1a3a6e';
+                container.appendChild(badge);
+            });
+        }
+
+        // Start the game
+        window.onload = initGame;
+    </script>
+</body>
+</html>
